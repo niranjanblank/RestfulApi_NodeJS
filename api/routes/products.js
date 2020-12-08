@@ -2,8 +2,22 @@ const express = require('express')
 const router = express.Router()
 const Product = require('../models/products')
 router.get('/',(req,res)=>{
-    Product.find().then(result=>{
-        res.json(result)
+    Product.find().select('name price _id').then(result=>{
+        const response = {
+            count: result.length,
+            products: result.map(element => {
+                return{
+                    name: element.name,
+                    price: element.price,
+                    _id: element._id,
+                    request:{
+                        type: 'GET',
+                        url: 'http://localhost:3000/products/'+element._id
+                    }
+                }
+            })
+        }
+        res.json(response)
     }).catch(err=>{
         console.log(err)
         res.json({
@@ -22,14 +36,22 @@ router.post('/',(req,res)=>{
     product.save().then((result)=>{
 
         console.log(result)
+        res.status(201).json({
+            message:'Created product successfully',
+            createdProduct: {
+                name: result.name,
+                price: result.price,
+                request: {
+                    type:'GET',
+                    url: 'http://localhost:3000/products/'+result._id
+                }
+            }
+        })
     }).catch((err)=>{
         console.log(err)
     })
 
-    res.status(200).json({
-        message:'Handling POST requests to /products',
-        createdProduct: product
-    })
+  
 })
 
 router.get('/:productId',(req,res)=>{
@@ -68,7 +90,13 @@ router.patch('/:productId',(req,res)=>{
     }
 //{ $set:{name: req.body.newName, price: req.body.newPrice}}
     Product.updateOne({_id:id},{ $set:updateOps}).then(result=>{
-        res.json(result)
+        res.json({
+            message: 'Producted updated',
+            request: {
+                type:'GET',
+                url: 'http://localhost:3000/products/'+id
+            }
+        })
     }).catch(err=>{
         console.log(err)
         res.json(err.message)
